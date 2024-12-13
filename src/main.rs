@@ -1,9 +1,12 @@
+use std::ffi::CStr;
+
 use nix::errno::Errno;
 
 pub mod bindings;
 
 use bindings::{
     hci_get_route, hci_inquiry, hci_open_dev, hci_read_class_of_dev, hci_read_inquiry_mode,
+    hci_read_local_name, hci_read_inquiry_scan_type,
     hci_read_remote_name, inquiry_info, IREQ_CACHE_FLUSH,
 };
 
@@ -35,7 +38,13 @@ fn main() {
     dbg!(unsafe { hci_read_class_of_dev(bt_socket, p_class, 1_000) });
     println!("{:#04x?}", class);
 
-    // return;
+    let mut local_name = vec![0; MAX_NAME_LENGTH as _];
+    let p_local_name = local_name.as_mut_ptr();
+    dbg!(unsafe{ hci_read_local_name(bt_socket, MAX_NAME_LENGTH, p_local_name, 1_000) });
+    let local_name = Vec::from_iter(local_name.iter().map(|i| *i as u8));
+    dbg!(CStr::from_bytes_until_nul(&local_name).unwrap());
+
+    return;
 
     // write page scan type - interlaced scan
     // write inquiry scan type - interlaced scan
