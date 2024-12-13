@@ -3,24 +3,19 @@ use nix::errno::Errno;
 pub mod bindings;
 
 use bindings::{
-    hci_get_route,
-    hci_open_dev,
-    hci_read_inquiry_mode,
-    hci_read_class_of_dev,
-    hci_inquiry,
-    inquiry_info,
-    IREQ_CACHE_FLUSH};
+    hci_get_route, hci_inquiry, hci_open_dev, hci_read_class_of_dev, hci_read_inquiry_mode,
+    hci_read_remote_name, inquiry_info, IREQ_CACHE_FLUSH,
+};
+
+const MAX_NAME_LENGTH: i32 = 250;
+const MAX_INQUIRIES: i32 = 255;
 
 fn main() {
     println!("Hello, world!");
 
-    let bt_device_id = unsafe {
-        hci_get_route(std::ptr::null_mut())
-    };
+    let bt_device_id = unsafe { hci_get_route(std::ptr::null_mut()) };
     dbg!(bt_device_id);
-    let bt_socket = unsafe {
-        hci_open_dev(bt_device_id)
-    };
+    let bt_socket = unsafe { hci_open_dev(bt_device_id) };
     dbg!(bt_socket);
 
     if bt_device_id < 0 || bt_socket < 0 {
@@ -52,7 +47,6 @@ fn main() {
     // write scan enable - Scan Enable: Inquiry Scan disabled/Page Scan enabled (0x02)
     // inquiry - LAP: 0x9e8b00 ; length = 3
 
-    const MAX_INQUIRIES: i32 = 255;
     let mut infos = Vec::with_capacity(MAX_INQUIRIES as _);
     for _ in 0..MAX_INQUIRIES {
         unsafe {
@@ -63,7 +57,7 @@ fn main() {
     let device_count = unsafe {
         hci_inquiry(
             bt_device_id,
-            6, // scan seconds
+            6,   // scan seconds
             255, // max inquiries
             // std::ptr::null(), // lap (??)
             lap.as_ptr(), // lap (??)
@@ -72,5 +66,25 @@ fn main() {
         )
     };
     dbg!(device_count);
+
+    for info in infos.iter().take(device_count as _) {
+        let mut name = [0u8; (MAX_NAME_LENGTH + 1) as _];
+        if unsafe {
+            hci_read_remote_name(
+                bt_socket,
+                &info.bdaddr,
+                MAX_NAME_LENGTH,
+                name.as_mut_ptr().cast(),
+                0,
+            )
+        } < 0
+        {
+            continue;
+        }
+        let name_length = name.iter().position(|&c| c == 0).unwrap();
+        let name = String::from_utf8_lossy(&name[..name_length]);
+        dbg!(name);
+    }
+
     nix::unistd::close(bt_socket).unwrap();
 }
