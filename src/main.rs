@@ -180,6 +180,8 @@ unsafe fn hci_reset(bt_socket: bt_socket, timeout: timeout) -> Option<()> {
     }
 }
 
+extern { fn bah(lap: *const u8) -> u8; }
+
 fn main() {
     println!("Hello, world!");
 
@@ -195,6 +197,11 @@ fn main() {
         );
         return;
     }
+
+    let lap = vec![0x00, 0x8b, 0x9e];
+    dbg!(unsafe{bah(lap.as_ptr())});
+
+    return;
 
     let mut inquiry_mode: u8 = 0;
     dbg!(unsafe { hci_read_inquiry_mode(bt_socket, &mut inquiry_mode, 1_000) });

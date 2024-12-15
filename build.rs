@@ -1,6 +1,11 @@
 fn main() {
     println!("cargo:rustc-link-lib=bluetooth");
 
+    cc::Build::new()
+        .file("src/hello.c")
+        .compile("hello");
+    println!("cargo::rerun-if-changed=src/hello.c");
+
     const HEADER_FILE: &str = "src/bluetooth.h";
     let bindings = bindgen::Builder::default()
         .header(HEADER_FILE)

@@ -9,3 +9,4 @@ nix = "0.29.0"
 
 [build-dependencies]
 bindgen = "0.71.1"
+cc = "1.2.4"
